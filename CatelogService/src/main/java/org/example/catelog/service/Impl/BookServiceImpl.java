@@ -1,6 +1,7 @@
 package org.example.catelog.service.Impl;
 
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.catelog.dto.BookRequestDTO;
 import org.example.catelog.dto.BookResponseDTO;
@@ -17,11 +18,13 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -37,10 +40,14 @@ public class BookServiceImpl implements BookService {
 
     @Autowired
     private BookJdbcRepository bookJdbcRepository;
+    @Autowired
+    private RedisTemplate<String, Object> redisTemplate;
 
 
     // ---------------- CREATE ----------------
-    @CacheEvict(value = { "books", "book" }, allEntries = true)
+    @Transactional
+    @CachePut(value = "bookDetail", key = "#result.bookId")
+    @CacheEvict(value = "books", allEntries = true)
     public BookResponseDTO createBook(BookRequestDTO request) {
         Books book = new Books();
         book.setTitle(request.getTitle());
@@ -51,9 +58,8 @@ public class BookServiceImpl implements BookService {
         book.setDescription(request.getDescription());
         book.setImageUrl(request.getImageUrl());
         book.setCreatedAt(LocalDateTime.now());
-        book.setBookNewId(request.getBookId());
 
-        // set author, publisher, category
+        // --- Liên kết khóa ngoại ---
         Author author = authorRepository.findById(request.getAuthorId())
                 .orElseThrow(() -> new RuntimeException("Author not found"));
         Publisher publisher = publisherRepository.findById(request.getPublisherId())
@@ -65,27 +71,52 @@ public class BookServiceImpl implements BookService {
         book.setPublisherId(publisher.getPublisherId());
         book.setCategoryId(category.getCategoryId());
 
+        // --- Nếu là thêm mới ---
+        if (request.getBookId() == null) {
+            // Lưu trước để có bookId
+            bookRepository.save(book);
+            // Gán bookNewId = bookId
+            book.setBookNewId(book.getBookId());
+            bookRepository.save(book);
+
+            // lưu vào cache
+            redisTemplate.opsForValue().set("book:" + book.getBookId(), book);
+            return convertToDTO(book);
+        }
+
+        // --- Nếu là cập nhật ---
+        Books oldBook = bookRepository.findById(request.getBookId())
+                .orElseThrow(() -> new RuntimeException("Old book not found"));
+
+        // Chỉ cho phép cập nhật nếu bản gốc (bookNewId == bookId)
+        if (!Objects.equals(oldBook.getBookNewId(), oldBook.getBookId())) {
+            throw new RuntimeException("Chỉ có thể cập nhật phiên bản mới nhất của sách!");
+        }
+
+        // 1️⃣ Lưu bản mới
         bookRepository.save(book);
         book.setBookNewId(book.getBookId());
-        if (request.getBookId() != null) {
-            // Tìm sách cũ theo bookId
-            Books oldBook = bookRepository.findById(request.getBookId()).orElse(null);
-            // Tìm tất cả sách liên quan (bao gồm các phiên bản trước)
-            List<Books> booksList = new ArrayList<>();
-            if (oldBook != null) {
-                // Thêm sách cũ
-                booksList.add(oldBook);
-                // Tìm các sách có bookNewId bằng bookId của bất kỳ phiên bản nào
-                List<Books> relatedBooks = bookRepository.findByBookNewId(oldBook.getBookNewId());
-                booksList.addAll(relatedBooks);
-            }
-            // Cập nhật bookNewId cho tất cả sách trong danh sách
-            for (Books item : booksList) {
-                item.setBookNewId(book.getBookId());
-            }
-            bookRepository.saveAll(booksList);
-        }
         bookRepository.save(book);
+
+        // 2️⃣ Xác định “chuỗi gốc” (root) của bản cũ
+        Long rootId = (oldBook.getBookNewId() != null)
+                ? oldBook.getBookNewId()
+                : oldBook.getBookId();
+
+        // 3️⃣ Lấy tất cả bản thuộc cùng chuỗi đó
+        List<Books> relatedBooks = bookRepository.findRelatedVersions(rootId);
+
+        // 4️⃣ Cập nhật bookNewId của toàn bộ bản cũ trỏ về bản mới nhất
+        for (Books b : relatedBooks) {
+            b.setBookNewId(book.getBookId());
+        }
+        bookRepository.saveAll(relatedBooks);
+
+        // 5️⃣ Cập nhật cache
+        redisTemplate.opsForValue().set("book:" + book.getBookId(), book);
+        for (Books b : relatedBooks) {
+            redisTemplate.opsForValue().set("book:" + b.getBookId(), b);
+        }
 
         return convertToDTO(book);
     }
@@ -102,51 +133,59 @@ public class BookServiceImpl implements BookService {
 
 
     // chi tiết sách có kèm theo gọi ý những sách liên quan có chung tác giả
-    @Cacheable(value = "book", key = "#id")
+    // chi tiết sách + sách liên quan
+    @Override
+    @Cacheable(value = "bookDetail", key = "#id")
     public BookResponseDTO getBookById(Long id) {
-        BookResponseDTO responseDTO = convertToDTO(bookRepository.findById(id).get());
-        if (responseDTO.getAuthorId()!= null){
-            Optional<Author> author = authorRepository.findById(responseDTO.getAuthorId());
-            if(author.isPresent()){
-                List<BookResponseDTO> listAuthor = bookRepository.findByAuthorId(responseDTO.getAuthorId()).stream()
-                        .map(this::convertToDTO)
-                        .collect(Collectors.toList());
-                responseDTO.setBookResponseDTOList(listAuthor);
-            }
+        Books book = bookRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Book not found"));
+
+        BookResponseDTO dto = convertToDTO(book);
+
+        // Lấy sách liên quan (cùng tác giả, không gồm chính sách này)
+        if (book.getAuthorId() != null) {
+            List<BookResponseDTO> relatedBooks = bookRepository.findByAuthorId(book.getAuthorId())
+                    .stream()
+                    .filter(b -> !b.getBookId().equals(id))
+                    .map(this::convertToDTO)
+                    .limit(5) // giới hạn số sách liên quan
+                    .toList();
+            dto.setBookResponseDTOList(relatedBooks);
         }
-        return responseDTO;
+
+        return dto;
     }
 
     // ---------------- UPDATE ----------------
-    @CachePut(value = "book", key = "#id")
-    @CacheEvict(value = "books", allEntries = true)
-    public BookResponseDTO updateBook(Long id, BookRequestDTO request) {
-        return bookRepository.findById(id)
-                .map(book -> {
-                    book.setTitle(request.getTitle());
-                    book.setImportPrice(request.getImportPrice());
-                    book.setMarketPrice(request.getMarketPrice());
-                    book.setSalePrice(request.getSalePrice());
-                    book.setStockQuantity(request.getStockQuantity());
-                    book.setDescription(request.getDescription());
-                    book.setImageUrl(request.getImageUrl());
-
-                    Author author = authorRepository.findById(request.getAuthorId())
-                            .orElseThrow(() -> new RuntimeException("Author not found"));
-                    Publisher publisher = publisherRepository.findById(request.getPublisherId())
-                            .orElseThrow(() -> new RuntimeException("Publisher not found"));
-                    Category category = categoryRepository.findById(request.getCategoryId())
-                            .orElseThrow(() -> new RuntimeException("Category not found"));
-
-                    book.setAuthorId(author.getAuthorId());
-                    book.setPublisherId(publisher.getPublisherId());
-                    book.setCategoryId(category.getCategoryId());
-
-                    Books updated = bookRepository.save(book);
-                    return convertToDTO(updated);
-                })
-                .orElse(null);
-    }
+//    @CachePut(value = "book", key = "#id")
+//    @CacheEvict(value = "books", allEntries = true)
+//    public BookResponseDTO updateBook(Long id, BookRequestDTO request) {
+//        return bookRepository.findById(id)
+//                .map(book -> {
+//                    book.setTitle(request.getTitle());
+//                    book.setImportPrice(request.getImportPrice());
+//                    book.setMarketPrice(request.getMarketPrice());
+//                    book.setSalePrice(request.getSalePrice());
+//                    book.setStockQuantity(request.getStockQuantity());
+//                    book.setDescription(request.getDescription());
+//                    book.setImageUrl(request.getImageUrl());
+//
+//                    Author author = authorRepository.findById(request.getAuthorId())
+//                            .orElseThrow(() -> new RuntimeException("Author not found"));
+//                    Publisher publisher = publisherRepository.findById(request.getPublisherId())
+//                            .orElseThrow(() -> new RuntimeException("Publisher not found"));
+//                    Category category = categoryRepository.findById(request.getCategoryId())
+//                            .orElseThrow(() -> new RuntimeException("Category not found"));
+//
+//                    book.setAuthorId(author.getAuthorId());
+//                    book.setPublisherId(publisher.getPublisherId());
+//                    book.setCategoryId(category.getCategoryId());
+//
+//                    Books updated = bookRepository.save(book);
+//                    return convertToDTO(updated);
+//                })
+//                .orElse(null);
+//    }
 
     // ---------------- DELETE ----------------
 //    public boolean deleteBook(Long id) {
@@ -158,6 +197,9 @@ public class BookServiceImpl implements BookService {
 //        }else
 //            return false;
 //    }
+
+
+
 
     // ---------------- CONVERT ----------------
     private BookResponseDTO convertToDTO(Books book) {
@@ -209,11 +251,17 @@ public class BookServiceImpl implements BookService {
 
 
     @Override
-    @CacheEvict(value = { "books", "book" }, allEntries = true)
-    public void updateStockQuantity(Long id, Integer quantity) {
-        Books book = bookRepository.findById(id).orElseThrow(() -> new RuntimeException("Book not found"));
+    @CachePut(value = "bookDetail", key = "#id")
+    @CacheEvict(value = "books", allEntries = true)
+    public BookResponseDTO updateStockQuantity(Long id, Integer quantity) {
+        Books book = bookRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Book not found"));
+
         book.setStockQuantity(book.getStockQuantity() + quantity);
-        bookRepository.save(book);
+        Books updated = bookRepository.save(book);
+
+        // trả về DTO để cache cập nhật đúng giá trị
+        return convertToDTO(updated);
     }
 
     @Override

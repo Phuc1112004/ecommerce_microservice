@@ -24,4 +24,7 @@ public interface BookRepository extends JpaRepository<Books, Long>, JpaSpecifica
             "FROM Books b WHERE b.bookId = :bookId")
     BookInfoDTO getBookInfo(@Param("bookId") Long bookId);
 
+    @Query("SELECT b FROM Books b WHERE b.bookNewId = :rootId OR b.bookId = :rootId")
+    List<Books> findRelatedVersions(@Param("rootId") Long rootId);
+
 }

@@ -12,10 +12,10 @@ public interface BookService {
 //    BookResponseDTO deleteBook(BookRequestDTO request);
     List<BookResponseDTO> getAllBooks();
     BookResponseDTO getBookById(Long id);
-    BookResponseDTO updateBook(Long id, BookRequestDTO request);
+//    BookResponseDTO updateBook(Long id, BookRequestDTO request);
     List<BookResponseDTO> getAllBooksJdbc();
     List<BookResponseDTO> searchBooks(String title, String authorName, String categoryName, Long minPrice, Long maxPrice);
-    void updateStockQuantity(Long id, Integer quantity);
+    BookResponseDTO updateStockQuantity(Long id, Integer quantity);
     Optional<BookInfoDTO> findBookById(Long id);
 
 }

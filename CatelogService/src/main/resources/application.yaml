@@ -21,6 +21,12 @@ spring:
 jwt:
   secret-key: nhaptenphuctrinhvaolachayduoctoken
 
+cache:
+  refresh:
+    books:
+      cron: "0 0 3 * * *"   # chạy lúc 3h sáng mỗi ngày
+
+
 
 
 eureka:
