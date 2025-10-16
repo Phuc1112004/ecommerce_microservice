@@ -1,9 +1,12 @@
 package org.example.orderservice.controller;
 
 import jakarta.validation.Valid;
+import org.example.common.dto.OrderInfoDTO;
 import org.example.orderservice.dto.OrderRequestDTO;
 import org.example.orderservice.dto.OrderResponseDTO;
+import org.example.orderservice.entity.Orders;
 import org.example.orderservice.enums.OrderStatus;
+import org.example.orderservice.repository.OrderRepository;
 import org.example.orderservice.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -20,6 +23,8 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+    @Autowired
+    private OrderRepository orderRepository;
 
     // Tạo đơn hàng
     @PostMapping
@@ -45,7 +50,7 @@ public class OrderController {
     // Cập nhật trạng thái đơn hàng
     @PutMapping("/{orderId}/status")
     @PreAuthorize("hasRole('ADMIN')")
-    public OrderResponseDTO updateOrderStatus(
+    public OrderResponseDTO updateOrderStatusForAdmin(
             @PathVariable Long orderId,
             @RequestParam String status
     ) {
@@ -60,6 +65,36 @@ public class OrderController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime dateTo
     ) {
         return ResponseEntity.ok(orderService.searchOrders(keyword, status, dateFrom, dateTo));
+    }
+
+    @GetMapping("/{orderId}/info")
+    public OrderInfoDTO getOrderInfo(@PathVariable Long orderId) {
+        Orders order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        OrderInfoDTO dto = new OrderInfoDTO();
+        dto.setOrderId(order.getOrderId());
+        dto.setUserId(order.getUserId());
+        dto.setTotalAmount(order.getTotalAmount());
+        dto.setStatus(order.getStatus().name());
+        dto.setReceiver(order.getReceiver());
+        dto.setShippingAddress(order.getShippingAddress());
+        return dto;
+    }
+
+    // --- API nội bộ, được PaymentService gọi qua Feign ---
+    @PutMapping("/{orderId}/internal-status")
+    public ResponseEntity<?> updateOrderStatusInternal(
+            @PathVariable Long orderId,
+            @RequestParam String status
+    ) {
+        Orders order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        order.setStatus(OrderStatus.valueOf(status.toUpperCase()));
+        orderRepository.save(order);
+
+        return ResponseEntity.ok("Order status updated to " + status);
     }
 
 }

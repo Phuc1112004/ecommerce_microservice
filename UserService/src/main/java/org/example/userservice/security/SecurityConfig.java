@@ -33,6 +33,10 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()   // login, register: không cần token
+                        // Cho phép VNPay callback không cần token
+                        .requestMatchers("/api/vnpay/return").permitAll()
+                        .requestMatchers("/api/vnpay/create-payment/**").authenticated() // cái này user phải login mới tạo đơn
+
                         .anyRequest().authenticated()
                 )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

@@ -1,4 +1,4 @@
-package org.example.orderservice.security;
+package org.example.paymentservice.security;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -29,7 +29,13 @@ public class SecurityConfig {
         http.csrf(csrf -> csrf.disable())
                 // Xử lý khi không có token hoặc token không hợp lệ
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/orders/*/internal-status").permitAll() // <-- thêm dòng này
+                        // ✅ Cho phép các request VNPay callback không cần token
+                        .requestMatchers("/api/vnpay/**").permitAll()
+
+                        // ✅ (Tuỳ chọn) nếu bạn muốn test Payment public luôn:
+                         .requestMatchers("/api/payments/**").permitAll()
+
+                        // 🔒 Các request khác vẫn cần token
                         .anyRequest().authenticated()
                 )                .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))
