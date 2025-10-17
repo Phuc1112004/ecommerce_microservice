@@ -2,7 +2,11 @@ package org.example.catelog.specification;
 
 
 
+import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.Subquery;
+import org.example.catelog.entity.Author;
 import org.example.catelog.entity.Books;
+import org.example.catelog.entity.Category;
 import org.springframework.data.jpa.domain.Specification;
 
 public class BookSpecification {
@@ -13,14 +17,31 @@ public class BookSpecification {
     }
 
     public static Specification<Books> hasAuthorName(String authorName) {
-        return (root, query, cb) ->
-                authorName == null ? null : cb.like(cb.lower(root.get("author").get("authorName")), "%" + authorName.toLowerCase() + "%");
+        return (root, query, cb) -> {
+            if (authorName == null || authorName.isEmpty()) return cb.conjunction();
+
+            Subquery<Long> subquery = query.subquery(Long.class);
+            Root<Author> authorRoot = subquery.from(Author.class);
+            subquery.select(authorRoot.get("authorId"))
+                    .where(cb.like(cb.lower(authorRoot.get("authorName")), "%" + authorName.toLowerCase() + "%"));
+
+            return root.get("authorId").in(subquery);
+        };
     }
 
     public static Specification<Books> hasCategoryName(String categoryName) {
-        return (root, query, cb) ->
-                categoryName == null ? null : cb.like(cb.lower(root.get("category").get("categoryName")), "%" + categoryName.toLowerCase() + "%");
+        return (root, query, cb) -> {
+            if (categoryName == null || categoryName.isEmpty()) return cb.conjunction();
+
+            Subquery<Long> subquery = query.subquery(Long.class);
+            Root<Category> categoryRoot = subquery.from(Category.class);
+            subquery.select(categoryRoot.get("categoryId"))
+                    .where(cb.like(cb.lower(categoryRoot.get("categoryName")), "%" + categoryName.toLowerCase() + "%"));
+
+            return root.get("categoryId").in(subquery);
+        };
     }
+
 
     public static Specification<Books> priceBetween(Long minPrice, Long maxPrice) {
         return (root, query, cb) -> {
