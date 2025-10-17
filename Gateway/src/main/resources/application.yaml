@@ -24,10 +24,10 @@ spring:
           predicates:
             - Path=/auth/**, /api/users/**
 
-        - id: catelog-service
+        - id: catalog-service
           uri: http://localhost:8002
           predicates:
-            - Path=/api/catelog/**
+            - Path=/api/catalog/**
 #          filters:
 #            - StripPrefix=1
 #            - AddRequestHeader=Authorization, #{request.headers['Authorization']}

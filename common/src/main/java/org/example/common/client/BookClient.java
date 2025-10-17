@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
-@FeignClient(name = "catelog-service", url = "http://localhost:8002/api/catelog")
+@FeignClient(name = "catalog-service", url = "http://localhost:8002/api/catalog")
 public interface BookClient {
 //    @GetMapping("/book/{purchaseId}")
 //    Long getBookByPurchaseId(@PathVariable("purchaseId") Long purchaseId);

@@ -3,7 +3,7 @@
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/BookService/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/CartService/src/main/java" charset="UTF-8" />
-    <file url="file://$PROJECT_DIR$/CatelogService/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/CatalogService/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Eureka/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/Gateway/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/InventoryService/src/main/java" charset="UTF-8" />

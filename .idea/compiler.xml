@@ -19,7 +19,7 @@
         </processorPath>
         <module name="common" />
       </profile>
-      <profile name="Annotation profile for InventoryService" enabled="true">
+      <profile name="Annotation profile for ReviewService" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -30,7 +30,7 @@
         <module name="ReviewService" />
         <module name="InventoryService" />
       </profile>
-      <profile name="Annotation profile for CatelogService" enabled="true">
+      <profile name="Annotation profile for CatalogService" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -38,16 +38,17 @@
           <entry name="$MAVEN_REPOSITORY$/org/springframework/boot/spring-boot-configuration-processor/3.3.4/spring-boot-configuration-processor-3.3.4.jar" />
           <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.34/lombok-1.18.34.jar" />
         </processorPath>
+        <module name="CatalogService" />
         <module name="CartService" />
         <module name="OrderService" />
         <module name="UserService" />
         <module name="PaymentService" />
-        <module name="CatelogService" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
       <module name="BookService" target="17" />
       <module name="BookService (1)" target="17" />
+      <module name="CatelogService" target="17" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
@@ -55,6 +56,7 @@
       <module name="BookService" options="-parameters" />
       <module name="BookService (1)" options="-parameters" />
       <module name="CartService" options="-parameters" />
+      <module name="CatalogService" options="-parameters" />
       <module name="CatelogService" options="-parameters" />
       <module name="Eureka" options="-parameters" />
       <module name="Gateway" options="-parameters" />
