@@ -114,7 +114,13 @@ public class PaymentService {
         payment.setOrderId(event.getOrderId());
         payment.setAmount(event.getTotalAmount().longValue());
         payment.setStatus(PaymentStatus.PENDING);
-//        payment.setPaymentMethod(convertMethod(event.getPaymentMethod()));
+        // Map enum từ common sang payment-service
+        org.example.common.enums.PaymentMethod eventMethod = event.getPaymentMethod();
+        org.example.paymentservice.enums.PaymentMethod paymentMethod =
+                eventMethod != null
+                        ? org.example.paymentservice.enums.PaymentMethod.valueOf(eventMethod.name())
+                        : org.example.paymentservice.enums.PaymentMethod.VNPAY;
+
         payment.setPaidAt(LocalDateTime.now());
 
         paymentRepository.save(payment);
@@ -131,16 +137,21 @@ public class PaymentService {
 
 
 
-
     private PaymentResponseDTO convertToResponseDTO(Payment payment) {
         PaymentResponseDTO dto = new PaymentResponseDTO();
+
         dto.setPaymentId(payment.getPaymentId());
         dto.setOrderId(payment.getOrderId());
-        dto.setPaymentMethod(payment.getPaymentMethod().toString());
-        dto.setAmount(payment.getAmount());
-        dto.setStatus(payment.getStatus().toString());
-        dto.setPaidAt(payment.getPaidAt());
+
+        // ✅ Tránh NullPointerException với enum
+        dto.setPaymentMethod(payment.getPaymentMethod() != null ? payment.getPaymentMethod().name() : "UNKNOWN");
+        dto.setStatus(payment.getStatus() != null ? payment.getStatus().name() : "UNKNOWN");
+
+        dto.setAmount(payment.getAmount() != null ? payment.getAmount() : 0L);
+        dto.setPaidAt(payment.getPaidAt() != null ? payment.getPaidAt() : null);
+
         return dto;
     }
+
 }
 

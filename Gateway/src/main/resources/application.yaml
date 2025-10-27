@@ -40,7 +40,7 @@ spring:
         - id: cart-service
           uri: http://localhost:8004
           predicates:
-            - Path=/api/carts/**
+            - Path=/api/carts/**, /api/cart-items/**
 
         - id: order-service
           uri: http://localhost:8005

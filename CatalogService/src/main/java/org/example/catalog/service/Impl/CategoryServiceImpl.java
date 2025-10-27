@@ -22,8 +22,8 @@ public class CategoryServiceImpl implements CategoryService {
     // ---------------- CREATE ----------------
     public CategoryDTO createCategory(CategoryDTO request) {
         Category category = new Category();
-        category.setCategoryName(request.getCategoryName());
-        category.setDescription(request.getDescription());
+        category.setCategoryName(request.getCategoryName() == null ? null :request.getCategoryName().trim());
+        category.setDescription(request.getDescription() == null ? null :request.getDescription().trim());
 //        Category category = categoryRepository.findById(request.getCategoryId().orElseThrow(() -> new RuntimeException("Category not found"));
 
         if (request.getParentId() != null) {

@@ -7,6 +7,7 @@ import org.example.common.client.UserClient;
 import org.example.common.dto.BookInfoDTO;
 import org.example.common.dto.UserInfoDTO;
 import org.example.common.dto.kafka.OrderCreatedEvent;
+import org.example.common.enums.PaymentMethod;
 import org.example.common.exception.ResourceNotFoundException;
 import org.example.orderservice.dto.OrderItemResponseDTO;
 import org.example.orderservice.dto.OrderItemResquestDTO;
@@ -96,6 +97,7 @@ public class OrderServiceImpl implements OrderService {
         event.setUserId(savedOrder.getUserId());
         event.setTotalAmount(savedOrder.getTotalAmount());
         event.setReceiver(savedOrder.getReceiver());
+        event.setPaymentMethod(PaymentMethod.VNPAY);   // set cứng tạm VNpay
         event.setShippingAddress(savedOrder.getShippingAddress());
         event.setStatus(org.example.common.enums.OrderStatus.PENDING);
 

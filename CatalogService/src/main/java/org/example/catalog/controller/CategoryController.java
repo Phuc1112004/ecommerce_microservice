@@ -2,6 +2,7 @@ package org.example.catalog.controller;
 
 
 
+import jakarta.validation.Valid;
 import org.example.catalog.dto.CategoryDTO;
 import org.example.catalog.service.CategoryService;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,7 @@ public class CategoryController {
 
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<CategoryDTO> createCategories(@RequestBody CategoryDTO request) {
+    public ResponseEntity<CategoryDTO> createCategories(@Valid @RequestBody CategoryDTO request) {
         CategoryDTO createCategory = categoryService.createCategory(request);
         return ResponseEntity.ok(createCategory);
     }

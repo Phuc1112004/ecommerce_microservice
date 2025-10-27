@@ -2,10 +2,7 @@ package org.example.common.client;
 
 import org.example.common.dto.OrderInfoDTO;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 @FeignClient(name = "order-service", url = "http://localhost:8005/api/orders")
 public interface OrderClient {
@@ -18,5 +15,9 @@ public interface OrderClient {
 
     @GetMapping("/{orderId}/info")
     OrderInfoDTO getOrderInfo(@PathVariable("orderId") Long orderId);
+
+    // --- Tạo đơn hàng ---
+//    @PostMapping
+//    OrderResponseDTO createOrder(@RequestBody OrderRequestDTO request);
 
 }

@@ -8,6 +8,7 @@ import org.example.userservice.dto.LoginResponse;
 import org.example.userservice.dto.RegisterRequest;
 import org.example.userservice.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.propertyeditors.StringTrimmerEditor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,10 +17,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.WebDataBinder;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.Map;
@@ -29,6 +28,13 @@ import java.util.Map;
 public class AuthController {
     @Autowired
     private UserService userService;
+
+    // InitBinder để tự động trim String
+    @InitBinder
+    public void initBinder(WebDataBinder binder) {
+        StringTrimmerEditor stringTrimmer = new StringTrimmerEditor(true); // true = convert blank -> null
+        binder.registerCustomEditor(String.class, stringTrimmer);
+    }
 
     // Đăng ký
     @PostMapping("/register")

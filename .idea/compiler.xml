@@ -9,17 +9,9 @@
         <outputRelativeToContentRoot value="true" />
         <module name="Eureka" />
         <module name="Gateway" />
+        <module name="SagaOrchestratorService" />
       </profile>
-      <profile name="Annotation profile for common" enabled="true">
-        <sourceOutputDir name="target/generated-sources/annotations" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <processorPath useClasspath="false">
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.40/lombok-1.18.40.jar" />
-        </processorPath>
-        <module name="common" />
-      </profile>
-      <profile name="Annotation profile for ReviewService" enabled="true">
+      <profile name="Annotation profile for InventoryService" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -30,7 +22,7 @@
         <module name="ReviewService" />
         <module name="InventoryService" />
       </profile>
-      <profile name="Annotation profile for PaymentService" enabled="true">
+      <profile name="Annotation profile for UserService" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -43,6 +35,15 @@
         <module name="OrderService" />
         <module name="UserService" />
         <module name="PaymentService" />
+      </profile>
+      <profile name="Annotation profile for common" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.40/lombok-1.18.40.jar" />
+        </processorPath>
+        <module name="common" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
@@ -64,6 +65,7 @@
       <module name="OrderService" options="-parameters" />
       <module name="PaymentService" options="-parameters" />
       <module name="ReviewService" options="-parameters" />
+      <module name="SagaOrchestratorService" options="-parameters" />
       <module name="UserService" options="-parameters" />
       <module name="common" options="-parameters" />
     </option>

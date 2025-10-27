@@ -28,4 +28,9 @@ public interface BookClient {
     @GetMapping("/books/find/{bookId}")
     BookInfoDTO findBookById(@PathVariable("bookId") Long bookId);
 
+    // 🔴 Khôi phục lại số lượng khi rollback hoặc thanh toán thất bại
+    @PutMapping("/books/{bookId}/restore-stock")
+    void restoreStock(@PathVariable("bookId") Long bookId,
+                      @RequestParam("quantity") Integer quantity);
+
 }

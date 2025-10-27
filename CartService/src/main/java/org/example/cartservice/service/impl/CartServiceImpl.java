@@ -59,7 +59,7 @@ public class CartServiceImpl implements CartService {
         List<CartItem> items = cartItemRepository.findByCartId(cart.getCartId());
         List<CartItemResponseDTO> itemDTOs = items.stream()
                 .map(item -> {
-                    BookInfoDTO bookInfo = bookClient.getBookInfo(item.getBookId());
+                    BookInfoDTO bookInfo = bookClient.getBookById(item.getBookId());
 
                     CartItemResponseDTO itemDTO = new CartItemResponseDTO();
                     itemDTO.setCartItemId(item.getCartItemId());

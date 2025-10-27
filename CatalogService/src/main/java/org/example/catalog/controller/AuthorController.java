@@ -1,5 +1,6 @@
 package org.example.catalog.controller;
 
+import jakarta.validation.Valid;
 import org.example.catalog.dto.AuthorDTO;
 import org.example.catalog.service.AuthorService;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +22,7 @@ public class AuthorController {
     // ---------------- CREATE ----------------
     @PostMapping
     @PreAuthorize("hasRole('ADMIN')") // chỉ ADMIN mới được tạo
-    public ResponseEntity<AuthorDTO> createAuthor(@RequestBody AuthorDTO request) {
+    public ResponseEntity<AuthorDTO> createAuthor(@Valid @RequestBody AuthorDTO request) {
         AuthorDTO createAuthor = authorService.createAuthor(request);
         return ResponseEntity.ok(createAuthor);
     }

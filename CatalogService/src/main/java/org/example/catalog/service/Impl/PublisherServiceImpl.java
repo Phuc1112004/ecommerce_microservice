@@ -25,14 +25,18 @@ public class PublisherServiceImpl implements PublisherService {
     // ---------------- CREATE ----------------
     public PublisherDTO createPublisher(PublisherDTO request) {
         Publisher publisher = new Publisher();
-        publisher.setPublisherName(request.getPublisherName());
-        publisher.setAddress(request.getAddress());
-        publisher.setPhone(request.getPhone());
-        publisher.setEmail(request.getEmail());
-        publisher.setWebsite(request.getWebsite());
-        publisher.setCountry(request.getCountry());
+        // Trim tất cả trường String
+        publisher.setPublisherName(request.getPublisherName() == null ? null : request.getPublisherName().trim());
+        publisher.setAddress(request.getAddress() == null ? null : request.getAddress().trim());
+        publisher.setPhone(request.getPhone() == null ? null : request.getPhone().trim());
+        publisher.setEmail(request.getEmail() == null ? null : request.getEmail().trim());
+        publisher.setWebsite(request.getWebsite() == null ? null : request.getWebsite().trim());
+        publisher.setCountry(request.getCountry() == null ? null : request.getCountry().trim());
+        publisher.setDescription(request.getDescription() == null ? null : request.getDescription().trim());
+
+        // Các field non-String giữ nguyên
         publisher.setFoundedYear(request.getFoundedYear());
-        publisher.setDescription(request.getDescription());
+
 
         Publisher saved = publisherRepository.save(publisher);
         return convertToDTO(saved);

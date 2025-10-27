@@ -22,8 +22,12 @@ public class AuthorServiceImpl implements AuthorService {
     // ---------------- CREATE ----------------
     public AuthorDTO createAuthor(AuthorDTO request) {
         Author author = new Author();
-        author.setAuthorName(request.getAuthorName());
-        author.setBiography(request.getBiography());
+        // Trim input để bỏ khoảng trắng đầu/cuối
+        String name = request.getAuthorName() == null ? null : request.getAuthorName().trim();
+        String bio = request.getBiography() == null ? null : request.getBiography().trim();
+
+        author.setAuthorName(name);
+        author.setBiography(bio);
 
         Author saved = authorRepository.save(author);
         return convertToDTO(saved);

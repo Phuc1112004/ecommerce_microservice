@@ -57,7 +57,7 @@ public class CartItemServiceImpl implements CartItemService {
 
     private CartItemResponseDTO mapToDTO(CartItem item) {
         CartItemResponseDTO dto = new CartItemResponseDTO();
-        BookInfoDTO bookInfo = bookClient.getBookInfo(item.getBookId());
+        BookInfoDTO bookInfo = bookClient.getBookById(item.getBookId());
 
         dto.setCartItemId(item.getCartItemId());
         dto.setBookId(bookInfo.getBookId());

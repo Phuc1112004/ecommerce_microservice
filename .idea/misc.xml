@@ -18,6 +18,7 @@
         <option value="$PROJECT_DIR$/CatelogService/pom.xml" />
         <option value="$PROJECT_DIR$/common/pom.xml" />
         <option value="$PROJECT_DIR$/CatalogService/pom.xml" />
+        <option value="$PROJECT_DIR$/SagaOrchestratorService/pom.xml" />
       </list>
     </option>
   </component>

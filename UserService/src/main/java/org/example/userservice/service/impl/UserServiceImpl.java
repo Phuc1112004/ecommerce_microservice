@@ -39,17 +39,48 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public RegisterResponse registerUser(RegisterRequest request) {
-        if (userRepository.findByUserName(request.getUserName()).isPresent()) {
+
+        String username = request.getUserName() == null ? null : request.getUserName().trim();
+        String email = request.getEmail() == null ? null : request.getEmail().trim();
+        String phone = request.getPhone() == null ? null : request.getPhone().trim();
+        String password = request.getPassword() == null ? null : request.getPassword().trim();
+
+// Check blank trước
+        if (username == null || username.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên đăng nhập không được để trống");
+        }
+        if (password == null || password.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống");
+        }
+        if (email == null || email.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Email không được để trống");
+        }
+        if (phone == null || phone.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Số điện thoại không được để trống");
+        }
+
+// Sau đó mới check username tồn tại
+        if (userRepository.findByUserName(username).isPresent()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "User already exists");
         }
 
+        // Check trùng
+        if (userRepository.findByUserName(username).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Tên đăng nhập đã tồn tại");
+        }
+        if (userRepository.findByEmail(email).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Email đã được sử dụng");
+        }
 
+
+
+    // Save user với giá trị đã trim
         Users user = new Users();
-        user.setUserName(request.getUserName());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEmail(request.getEmail());
-        user.setPhone(request.getPhone());
-        user.setRole("CUSTOMER"); // mặc định role CUSTOMER
+        user.setUserName(username);
+        user.setPassword(passwordEncoder.encode(password));
+        user.setEmail(email);
+        user.setPhone(phone);
+        user.setRole("CUSTOMER");
         user.setCreateAt(LocalDateTime.now());
 
         Users savedUser = userRepository.save(user);
@@ -73,6 +104,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public LoginResponse loginUser(LoginRequest request) {
+
+        String username = request.getUserName() == null ? null : request.getUserName().trim();
+        String password = request.getPassword() == null ? null : request.getPassword().trim();
+
+        if (username == null || username.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tên đăng nhập không được để trống");
+        }
+        if (password == null || password.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống");
+        }
+
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUserName(),

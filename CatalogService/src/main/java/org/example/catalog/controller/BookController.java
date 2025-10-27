@@ -5,6 +5,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.example.catalog.dto.BookRequestDTO;
 import org.example.catalog.dto.BookResponseDTO;
+import org.example.catalog.entity.Books;
 import org.example.catalog.repository.BookRepository;
 import org.example.catalog.service.BookService;
 import org.example.common.dto.BookInfoDTO;
@@ -129,5 +130,15 @@ public class BookController {
         BookInfoDTO bookInfo = bookRepository.getBookInfo(bookId);
         return ResponseEntity.ok(bookInfo);
     }
+
+    @PutMapping("/{bookId}/restore-stock")
+    public ResponseEntity<?> restoreStock(@PathVariable Long bookId, @RequestParam("quantity") int quantity) {
+        Books book = bookRepository.findById(bookId)
+                .orElseThrow(() -> new RuntimeException("Book not found"));
+        book.setStockQuantity(book.getStockQuantity() + quantity);
+        bookRepository.save(book);
+        return ResponseEntity.ok("Stock restored successfully");
+    }
+
 }
 

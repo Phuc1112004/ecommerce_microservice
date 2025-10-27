@@ -20,4 +20,6 @@ public interface UserRepository extends JpaRepository<Users, Long> {
         WHERE u.userId = :userId
     """)
     UserResponseDTO findUserInfoByUserId(@Param("userId") Long userId);
+
+    Optional<Object> findByEmail(String email);
 }

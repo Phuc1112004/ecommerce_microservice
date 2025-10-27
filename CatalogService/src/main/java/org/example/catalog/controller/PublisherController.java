@@ -31,7 +31,7 @@ public class PublisherController {
     // API: Thêm publisher mới
     @PostMapping("/add")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<String> addPublisher(@RequestBody Publisher publisher) {
+    public ResponseEntity<String> addPublisher(@RequestBody @Valid Publisher publisher) {
         publisherService.addPublisher(publisher);
         return ResponseEntity.ok("Publisher added successfully!");
     }
