@@ -45,7 +45,7 @@ spring:
         - id: order-service
           uri: http://localhost:8005
           predicates:
-            - Path=/api/orders/**
+            - Path=/api/orders/**,/api/kafka/**
 
         - id: payment-service
           uri: http://localhost:8006

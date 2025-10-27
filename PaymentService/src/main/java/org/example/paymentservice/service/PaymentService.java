@@ -1,6 +1,7 @@
 package org.example.paymentservice.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.example.common.client.OrderClient;
 import org.example.common.dto.OrderInfoDTO;
 import org.example.paymentservice.dto.PaymentRequestDTO;
@@ -15,7 +16,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class PaymentService {
     private final PaymentRepository paymentRepository;
@@ -54,7 +57,7 @@ public class PaymentService {
 
         payment.setAmount(request.getAmount());
         payment.setStatus(PaymentStatus.PENDING); // mặc định pending
-        payment.setPaidAt(null);
+        payment.setPaidAt(LocalDateTime.now());
 
         Payment saved = paymentRepository.save(payment);
         return convertToResponseDTO(saved);
@@ -100,6 +103,30 @@ public class PaymentService {
                     return paymentRepository.save(p);
                 });
         return convertToResponseDTO(payment);
+    }
+
+
+    // Tạo thanh toán tự động khi nhận event từ order-service
+    public void createPaymentFromOrderEvent(org.example.common.dto.kafka.OrderCreatedEvent event) {
+        log.info("➡ Creating payment record for orderId = {}", event.getOrderId());
+
+        Payment payment = new Payment();
+        payment.setOrderId(event.getOrderId());
+        payment.setAmount(event.getTotalAmount().longValue());
+        payment.setStatus(PaymentStatus.PENDING);
+//        payment.setPaymentMethod(convertMethod(event.getPaymentMethod()));
+        payment.setPaidAt(LocalDateTime.now());
+
+        paymentRepository.save(payment);
+        log.info("✅ Payment created for order {}", event.getOrderId());
+    }
+
+    private PaymentMethod convertMethod(String method) {
+        try {
+            return PaymentMethod.valueOf(method.toUpperCase());
+        } catch (Exception e) {
+            return PaymentMethod.VNPAY; // fallback
+        }
     }
 
 

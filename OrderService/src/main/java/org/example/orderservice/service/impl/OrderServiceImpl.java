@@ -6,6 +6,7 @@ import org.example.common.client.BookClient;
 import org.example.common.client.UserClient;
 import org.example.common.dto.BookInfoDTO;
 import org.example.common.dto.UserInfoDTO;
+import org.example.common.dto.kafka.OrderCreatedEvent;
 import org.example.common.exception.ResourceNotFoundException;
 import org.example.orderservice.dto.OrderItemResponseDTO;
 import org.example.orderservice.dto.OrderItemResquestDTO;
@@ -18,8 +19,10 @@ import org.example.orderservice.repository.OrderItemRepository;
 import org.example.orderservice.repository.OrderRepository;
 import org.example.orderservice.security.SecurityUtils;
 import org.example.orderservice.service.OrderService;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,6 +40,8 @@ public class OrderServiceImpl implements OrderService {
     private final UserClient userClient;
 
     private final BookClient bookClient;
+
+    private final KafkaTemplate<String, OrderCreatedEvent> kafkaTemplate;
 
     // Tạo đơn hàng mới
     @Transactional
@@ -84,6 +89,19 @@ public class OrderServiceImpl implements OrderService {
         // 4. Cập nhật tổng tiền
         savedOrder.setTotalAmount(totalAmount);
         savedOrder = orderRepository.save(savedOrder);
+
+        // 5. Gửi event sang Kafka (phải trước return)
+        OrderCreatedEvent event = new OrderCreatedEvent();
+        event.setOrderId(savedOrder.getOrderId());
+        event.setUserId(savedOrder.getUserId());
+        event.setTotalAmount(savedOrder.getTotalAmount());
+        event.setReceiver(savedOrder.getReceiver());
+        event.setShippingAddress(savedOrder.getShippingAddress());
+        event.setStatus(org.example.common.enums.OrderStatus.PENDING);
+
+
+        kafkaTemplate.send("order-created", event);
+        System.out.println("✅ Sent OrderCreatedEvent to Kafka: " + event);
 
         OrderResponseDTO dto = convertToDTO(savedOrder);
         dto.setReceiver(request.getReceiver());
@@ -191,5 +209,9 @@ public class OrderServiceImpl implements OrderService {
                 })
                 .filter(Objects::nonNull)
                 .toList();
+    }
+
+    public void sendOrderEvent(OrderCreatedEvent event) {
+        kafkaTemplate.send("order-topic", event);
     }
 }
