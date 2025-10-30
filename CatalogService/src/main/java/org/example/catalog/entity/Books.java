@@ -31,4 +31,12 @@ public class Books {
 
     private Long categoryId;
 
+    // === Thêm method này để chỉ cần save 1 lần ===
+    @PostPersist
+    public void setBookNewIdAfterInsert() {
+        if (this.bookNewId == null) {
+            this.bookNewId = this.bookId;
+        }
+    }
+
 }

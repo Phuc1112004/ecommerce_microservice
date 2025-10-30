@@ -12,6 +12,7 @@ import org.example.catalog.entity.Category;
 import org.example.catalog.entity.Publisher;
 import org.example.catalog.repository.*;
 import org.example.catalog.service.BookService;
+import org.example.catalog.service.CloudinaryService;
 import org.example.catalog.specification.BookSpecification;
 import org.example.common.dto.BookInfoDTO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +41,7 @@ public class BookServiceImpl implements BookService {
     private final PublisherRepository publisherRepository;
     private final CategoryRepository categoryRepository;
 //    private final OrderItemRepository orderItemRepository;
+    private final CloudinaryService cloudinaryService;
 
     private final Executor catalogTaskExecutor;
     private final RedisTemplate<String, Object> redisTemplate;
@@ -56,15 +58,31 @@ public class BookServiceImpl implements BookService {
     @CachePut(value = "bookDetail", key = "#result.bookId")
     @CacheEvict(value = "books", allEntries = true)
     public BookResponseDTO createBook(BookRequestDTO request) {
-        Books book = new Books();
+
+        boolean isUpdate = request.getBookId() != null;
+        Books book;
+
+        // --- Lấy sách cũ nếu update, tạo mới nếu không ---
+        if (isUpdate) {
+            book = new Books();
+        } else {
+            book = new Books();
+            book.setCreatedAt(LocalDateTime.now());
+        }
+
+        // --- Set thông tin chung ---
         book.setTitle(request.getTitle());
         book.setImportPrice(request.getImportPrice());
         book.setMarketPrice(request.getMarketPrice());
         book.setSalePrice(request.getSalePrice());
         book.setStockQuantity(request.getStockQuantity());
         book.setDescription(request.getDescription());
-        book.setImageUrl(request.getImageUrl());
-        book.setCreatedAt(LocalDateTime.now());
+
+        // --- Xử lý ảnh Cloudinary ---
+        if (request.getImageFile() != null && !request.getImageFile().isEmpty()) {
+            String imageUrl = cloudinaryService.uploadFile(request.getImageFile());
+            book.setImageUrl(imageUrl);
+        }
 
         // --- Liên kết khóa ngoại ---
         Author author = authorRepository.findById(request.getAuthorId())
@@ -78,69 +96,52 @@ public class BookServiceImpl implements BookService {
         book.setPublisherId(publisher.getPublisherId());
         book.setCategoryId(category.getCategoryId());
 
-        // --- Nếu là thêm mới ---
-        if (request.getBookId() == null) {
-            // Lưu trước để có bookId
-            bookRepository.save(book);
-            // Gán bookNewId = bookId
-            book.setBookNewId(book.getBookId());
-            bookRepository.save(book);
+        // --- Thêm mới sách ---
+        if (!isUpdate) {
+            bookRepository.save(book); // chỉ save 1 lần, bookNewId tự gán nhờ @PostPersist
 
-            // 🔹 Ghi cache song song (non-blocking)
+            // Async cache
             CompletableFuture.runAsync(() ->
                             redisTemplate.opsForValue().set("book:" + book.getBookId(), book),
                     catalogTaskExecutor
             );
+
             return convertToDTO(book);
         }
 
-        // --- Nếu là cập nhật ---
+        // --- Cập nhật sách ---
         Books oldBook = bookRepository.findById(request.getBookId())
                 .orElseThrow(() -> new RuntimeException("Old book not found"));
 
-        // Chỉ cho phép cập nhật nếu bản gốc (bookNewId == bookId)
         if (!Objects.equals(oldBook.getBookNewId(), oldBook.getBookId())) {
             throw new RuntimeException("Chỉ có thể cập nhật phiên bản mới nhất của sách!");
         }
 
-        // 1️⃣ Lưu bản mới
-        bookRepository.save(book);
-        book.setBookNewId(book.getBookId());
-        bookRepository.save(book);
+        // 1️⃣ Tạo bản mới (version mới)
+        book.setCreatedAt(LocalDateTime.now());
+        book.setBookNewId(book.getBookId()); // gán trước save
+        bookRepository.save(book); // save 1 lần
 
-        // 2️⃣ Xác định “chuỗi gốc” (root) của bản cũ
-        Long rootId = (oldBook.getBookNewId() != null)
-                ? oldBook.getBookNewId()
-                : oldBook.getBookId();
+        // 2️⃣ Xác định rootId của chuỗi sách
+        Long rootId = (oldBook.getBookNewId() != null) ? oldBook.getBookNewId() : oldBook.getBookId();
 
-        // 3️⃣ Lấy tất cả bản thuộc cùng chuỗi đó
-        List<Books> relatedBooks = bookRepository.findRelatedVersions(rootId);
+        // 3️⃣ Cập nhật tất cả bản cũ về phiên bản mới
+        bookRepository.updateBookNewIdForRelated(rootId, book.getBookId()); // dùng bulk update query
 
-        // 4️⃣ Cập nhật bookNewId của toàn bộ bản cũ trỏ về bản mới nhất
-        for (Books b : relatedBooks) {
-            b.setBookNewId(book.getBookId());
-        }
-        bookRepository.saveAll(relatedBooks);
-
-        // 5️⃣ Cập nhật cache
-//        redisTemplate.opsForValue().set("book:" + book.getBookId(), book);
-//        for (Books b : relatedBooks) {
-//            redisTemplate.opsForValue().set("book:" + b.getBookId(), b);
-//        }
-
-        // 🔹 Chạy song song 2 nhiệm vụ cache:
+        // 4️⃣ Async cache: bản mới + các bản liên quan
         CompletableFuture<Void> cacheNewBook = CompletableFuture.runAsync(() ->
                         redisTemplate.opsForValue().set("book:" + book.getBookId(), book),
                 catalogTaskExecutor
         );
 
         CompletableFuture<Void> cacheRelatedBooks = CompletableFuture.runAsync(() -> {
+            // Nếu muốn batch cache các bản liên quan, lấy list từ DB
+            List<Books> relatedBooks = bookRepository.findRelatedVersions(book.getBookId());
             relatedBooks.parallelStream().forEach(b ->
                     redisTemplate.opsForValue().set("book:" + b.getBookId(), b)
             );
         }, catalogTaskExecutor);
 
-        // 🔹 Gộp cả hai task lại để log hoặc xử lý lỗi
         CompletableFuture.allOf(cacheNewBook, cacheRelatedBooks)
                 .exceptionally(ex -> {
                     log.error("Cache update failed: {}", ex.getMessage());
@@ -149,6 +150,7 @@ public class BookServiceImpl implements BookService {
 
         return convertToDTO(book);
     }
+
 
 
     // ---------------- READ ----------------

@@ -22,7 +22,16 @@
         <module name="ReviewService" />
         <module name="InventoryService" />
       </profile>
-      <profile name="Annotation profile for UserService" enabled="true">
+      <profile name="Annotation profile for common" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.40/lombok-1.18.40.jar" />
+        </processorPath>
+        <module name="common" />
+      </profile>
+      <profile name="Annotation profile for CatalogService" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -35,15 +44,6 @@
         <module name="OrderService" />
         <module name="UserService" />
         <module name="PaymentService" />
-      </profile>
-      <profile name="Annotation profile for common" enabled="true">
-        <sourceOutputDir name="target/generated-sources/annotations" />
-        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
-        <outputRelativeToContentRoot value="true" />
-        <processorPath useClasspath="false">
-          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.40/lombok-1.18.40.jar" />
-        </processorPath>
-        <module name="common" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>

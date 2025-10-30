@@ -23,9 +23,9 @@ public class BookController {
     private final BookRepository bookRepository;
 
     // ---------------- CREATE ----------------
-    @PostMapping
+    @PostMapping(consumes = {"multipart/form-data"})
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<BookResponseDTO> createBook(@RequestBody @Valid BookRequestDTO request) {
+    public ResponseEntity<BookResponseDTO> createBook(@ModelAttribute @Valid BookRequestDTO request) {
         BookResponseDTO createdBook = bookService.createBook(request);
         return ResponseEntity.ok(createdBook);
     }
@@ -70,13 +70,12 @@ public class BookController {
 
 
     // ---------------- UPDATE ----------------
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<BookResponseDTO> updateBook(@PathVariable Long id,
-                                                      @RequestBody @Valid BookRequestDTO request) {
+                                                      @ModelAttribute @Valid BookRequestDTO request) {
         request.setBookId(id);
         BookResponseDTO updatedBook = bookService.createBook(request);
-        if (updatedBook == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(updatedBook);
     }
 

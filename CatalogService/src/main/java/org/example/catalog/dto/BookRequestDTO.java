@@ -6,6 +6,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
 
 @Data
 @Getter
@@ -32,7 +33,8 @@ public class BookRequestDTO {
     @NotNull(message = "Số lượng kho không được để trống")
     private Integer stockQuantity;
     private String description;
-    private String imageUrl;
+//    private String imageUrl;
+    private MultipartFile imageFile;
 
     private Long bookId;
 }

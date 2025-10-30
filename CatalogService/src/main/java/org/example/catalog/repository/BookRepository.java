@@ -4,10 +4,7 @@ package org.example.catalog.repository;
 import jakarta.persistence.LockModeType;
 import org.example.catalog.entity.Books;
 import org.example.common.dto.BookInfoDTO;
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-import org.springframework.data.jpa.repository.Lock;
-import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.*;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
@@ -33,5 +30,9 @@ public interface BookRepository extends JpaRepository<Books, Long>, JpaSpecifica
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT b FROM Books b WHERE b.bookId = :id")
     Optional<Books> findByIdForUpdate(@Param("id") Long id);
+
+    @Modifying
+    @Query("UPDATE Books b SET b.bookNewId = :newId WHERE b.bookNewId = :rootId OR b.bookId = :rootId")
+    void updateBookNewIdForRelated(@Param("rootId") Long rootId, @Param("newId") Long newId);
 
 }

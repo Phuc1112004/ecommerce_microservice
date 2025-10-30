@@ -14,6 +14,15 @@ spring:
 
   cloud:
     gateway:
+      globalcors:
+        add-to-simple-url-handler-mapping: true
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "http://localhost:4200"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            allowCredentials: true
+
       discovery:
         locator:
           enabled: true          # T? ??ng route theo t�n service trong Eureka
