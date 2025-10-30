@@ -117,7 +117,8 @@ public class PublisherServiceImpl implements PublisherService {
                 publisher.getWebsite(),
                 publisher.getCountry(),
                 publisher.getFoundedYear(),
-                publisher.getDescription()
+                publisher.getDescription(),
+                publisher.getPublisherImage()
         );
     }
 }

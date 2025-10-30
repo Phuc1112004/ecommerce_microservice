@@ -1,6 +1,5 @@
 package org.example.catalog.service.Impl;
 
-
 import org.example.catalog.entity.Publisher;
 import org.example.catalog.repository.PublishersRepository;
 import org.example.catalog.service.PublishersService;
@@ -9,29 +8,36 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 
-// sử dụng namedJDBC
 @Service
 public class PublishersServiceImpl implements PublishersService {
+
     @Autowired
     private PublishersRepository publishersRepository;
 
-    public int save(Publisher publisher) {
-        return publishersRepository.save(publisher);
+    @Override
+    public Publisher save(Publisher publisher) {
+        publishersRepository.save(publisher);
+        return publisher;
     }
 
+    @Override
     public List<Publisher> findAll() {
         return publishersRepository.findAll();
     }
 
+    @Override
     public Publisher findById(Long id) {
         return publishersRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Publisher not found with id " + id));
     }
 
-    public int update(Publisher publisher) {
-        return publishersRepository.update(publisher);
+    @Override
+    public Publisher update(Publisher publisher) {
+        publishersRepository.update(publisher);
+        return publisher;
     }
 
+    @Override
     public int delete(Long id) {
         return publishersRepository.delete(id);
     }

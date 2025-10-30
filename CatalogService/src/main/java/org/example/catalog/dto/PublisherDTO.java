@@ -1,5 +1,7 @@
 package org.example.catalog.dto;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PastOrPresent;
@@ -8,6 +10,7 @@ import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.validator.constraints.URL;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 
@@ -27,6 +30,9 @@ public class PublisherDTO {
     private String website;
     private String country;
     @PastOrPresent(message = "Năm thành lập phải nhỏ hơn hoặc bằng ngày hiện tại")
-    private LocalDate foundedYear;
+    private Integer foundedYear;
     private String description;
+    private String publisherImage;
+    @JsonIgnore
+    private MultipartFile publisherImageFile;
 }

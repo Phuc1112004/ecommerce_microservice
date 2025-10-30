@@ -19,13 +19,15 @@ public class Publisher {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long publisherId;
 
+    private String publisherImage;
+
     private String publisherName;
     private String address;
     private String phone;
     private String email;
     private String website;
     private String country;
-    private LocalDate foundedYear;
+    private Integer foundedYear;
     private String description;
     private LocalDateTime createdAt;
 

@@ -20,9 +20,9 @@ public class AuthorController {
     }
 
     // ---------------- CREATE ----------------
-    @PostMapping
+    @PostMapping(consumes = {"multipart/form-data"})
     @PreAuthorize("hasRole('ADMIN')") // chỉ ADMIN mới được tạo
-    public ResponseEntity<AuthorDTO> createAuthor(@Valid @RequestBody AuthorDTO request) {
+    public ResponseEntity<AuthorDTO> createAuthor(@Valid @ModelAttribute AuthorDTO request) {
         AuthorDTO createAuthor = authorService.createAuthor(request);
         return ResponseEntity.ok(createAuthor);
     }
@@ -43,10 +43,10 @@ public class AuthorController {
     }
 
     // ---------------- UPDATE ----------------
-    @PutMapping("/{id}")
+    @PutMapping(value = "/{id}", consumes = {"multipart/form-data"})
     @PreAuthorize("hasRole('ADMIN')") // chỉ ADMIN
     public ResponseEntity<AuthorDTO> updateAuthors(@PathVariable Long id,
-                                                   @RequestBody AuthorDTO request) {
+                                                   @Valid @ModelAttribute AuthorDTO request) {
         AuthorDTO updatedAuthor = authorService.updateAuthor(id, request);
         if (updatedAuthor == null) return ResponseEntity.notFound().build();
         return ResponseEntity.ok(updatedAuthor);

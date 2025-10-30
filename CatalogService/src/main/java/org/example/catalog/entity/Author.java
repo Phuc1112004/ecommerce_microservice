@@ -16,6 +16,7 @@ public class Author {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long authorId;
     private String authorName;
+    private String authorImage;
     private String biography;
 
 }

@@ -21,7 +21,8 @@ public interface PublisherRepository extends JpaRepository<Publisher, Long> {
             @Param("p_email") String email,
             @Param("p_website") String website,
             @Param("p_country") String country,
-            @Param("p_foundedYear") LocalDate foundedYear,
-            @Param("p_description") String description
+            @Param("p_foundedYear") Integer foundedYear,
+            @Param("p_description") String description,
+            @Param("p_publisherImage") String publiserImage
     );
 }

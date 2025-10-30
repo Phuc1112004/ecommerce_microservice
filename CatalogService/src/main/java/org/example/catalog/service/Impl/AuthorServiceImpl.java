@@ -1,23 +1,26 @@
 package org.example.catalog.service.Impl;
 
 
+import io.jsonwebtoken.io.IOException;
+import lombok.RequiredArgsConstructor;
 import org.example.catalog.dto.AuthorDTO;
 import org.example.catalog.entity.Author;
 import org.example.catalog.repository.AuthorRepository;
 import org.example.catalog.service.AuthorService;
+import org.example.catalog.service.CloudinaryService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class AuthorServiceImpl implements AuthorService {
 
     private final AuthorRepository authorRepository;
+    private final CloudinaryService cloudinaryService;
 
-    public AuthorServiceImpl(AuthorRepository authorRepository) {
-        this.authorRepository = authorRepository;
-    }
 
     // ---------------- CREATE ----------------
     public AuthorDTO createAuthor(AuthorDTO request) {
@@ -28,6 +31,13 @@ public class AuthorServiceImpl implements AuthorService {
 
         author.setAuthorName(name);
         author.setBiography(bio);
+
+        MultipartFile file = request.getAuthorImage();
+        if (file != null && !file.isEmpty()) {
+            String imageUrl = cloudinaryService.uploadFile(file);
+            author.setAuthorImage(imageUrl);
+        }
+
 
         Author saved = authorRepository.save(author);
         return convertToDTO(saved);
@@ -56,6 +66,17 @@ public class AuthorServiceImpl implements AuthorService {
                     author.setAuthorName(request.getAuthorName());
                     author.setBiography(request.getBiography());
 
+                    // 👉 Nếu có ảnh mới thì upload và thay ảnh cũ
+                    MultipartFile file = request.getAuthorImage();
+                    if (file != null && !file.isEmpty()) {
+                        try {
+                            String imageUrl = cloudinaryService.uploadFile(file);
+                            author.setAuthorImage(imageUrl);
+                        } catch (IOException e) {
+                            throw new RuntimeException("Lỗi khi upload ảnh mới", e);
+                        }
+                    }
+
                     Author updated = authorRepository.save(author);
                     return convertToDTO(updated);
                 }).orElse(null);
@@ -77,6 +98,7 @@ public class AuthorServiceImpl implements AuthorService {
         dto.setAuthorId(author.getAuthorId());
         dto.setAuthorName(author.getAuthorName());
         dto.setBiography(author.getBiography());
+        dto.setAuthorImageUrl(author.getAuthorImage());
         return dto;
     }
 }
