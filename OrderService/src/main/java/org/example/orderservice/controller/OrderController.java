@@ -2,10 +2,12 @@ package org.example.orderservice.controller;
 
 import jakarta.validation.Valid;
 import org.example.common.dto.OrderInfoDTO;
+import org.example.common.dto.kafka.OrderItemDTO;
 import org.example.orderservice.dto.OrderRequestDTO;
 import org.example.orderservice.dto.OrderResponseDTO;
 import org.example.orderservice.entity.Orders;
 import org.example.orderservice.enums.OrderStatus;
+import org.example.orderservice.repository.OrderItemRepository;
 import org.example.orderservice.repository.OrderRepository;
 import org.example.orderservice.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,6 +27,8 @@ public class OrderController {
     private OrderService orderService;
     @Autowired
     private OrderRepository orderRepository;
+    @Autowired
+    private OrderItemRepository orderItemRepository;
 
     // Tạo đơn hàng
     @PostMapping
@@ -96,5 +100,30 @@ public class OrderController {
 
         return ResponseEntity.ok("Order status updated to " + status);
     }
+
+
+    @GetMapping("/{orderId}/internal-info")
+    public OrderInfoDTO getInternalOrderInfo(@PathVariable Long orderId) {
+        Orders order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        // Lấy danh sách item
+        List<OrderItemDTO> items = orderItemRepository.findByOrderId(orderId)
+                .stream()
+                .map(item -> new OrderItemDTO(item.getBookId(), item.getQuantity()))
+                .toList();
+
+        OrderInfoDTO dto = new OrderInfoDTO();
+        dto.setOrderId(order.getOrderId());
+        dto.setUserId(order.getUserId());
+        dto.setTotalAmount(order.getTotalAmount());
+        dto.setStatus(order.getStatus().name());
+        dto.setReceiver(order.getReceiver());
+        dto.setShippingAddress(order.getShippingAddress());
+        dto.setItems(items); // <--- thêm dòng này
+
+        return dto;
+    }
+
 
 }

@@ -20,4 +20,7 @@ public interface OrderClient {
 //    @PostMapping
 //    OrderResponseDTO createOrder(@RequestBody OrderRequestDTO request);
 
+    @GetMapping("/{orderId}/internal-info")
+    OrderInfoDTO getInternalOrderInfo(@PathVariable("orderId") Long orderId);
+
 }

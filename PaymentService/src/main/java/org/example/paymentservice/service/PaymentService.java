@@ -4,13 +4,19 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.common.client.OrderClient;
 import org.example.common.dto.OrderInfoDTO;
+import org.example.common.dto.kafka.OrderItemDTO;
+import org.example.common.dto.kafka.PaymentSuccessEvent;
 import org.example.paymentservice.dto.PaymentRequestDTO;
 import org.example.paymentservice.dto.PaymentResponseDTO;
 import org.example.paymentservice.entity.Payment;
 import org.example.paymentservice.enums.PaymentMethod;
 import org.example.paymentservice.enums.PaymentStatus;
 import org.example.paymentservice.repository.PaymentRepository;
+import org.springframework.kafka.core.KafkaTemplate;
+import org.springframework.kafka.support.SendResult;
 import org.springframework.stereotype.Service;
+import org.springframework.util.concurrent.ListenableFuture;
+import org.springframework.util.concurrent.ListenableFutureCallback;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -26,6 +32,8 @@ public class PaymentService {
     private final OrderClient orderClient;
 //    private final OrderRepository orderRepository;
 //    private final OrderService orderService;
+    private final KafkaTemplate<String, Object> kafkaTemplate;
+
 
     public List<PaymentResponseDTO> getAllPayments() {
         List<Payment> payments = paymentRepository.findAll();
@@ -44,6 +52,7 @@ public class PaymentService {
 
         Payment payment = new Payment();
         payment.setOrderId(order.getOrderId());
+        payment.setUserId(order.getUserId());
 
         // Xử lý PaymentMethod an toàn
         String methodStr = request.getPaymentMethod();
@@ -68,18 +77,30 @@ public class PaymentService {
         Payment payment = paymentRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new RuntimeException("Payment not found"));
 
-
         if ("COMPLETED".equals(status)) {
             payment.setStatus(PaymentStatus.COMPLETED);
             payment.setPaidAt(LocalDateTime.now());
-            orderClient.updateOrderStatus(orderId,"PAID");
-        } else if ("FAILED".equals(status)) {
+
+            // --- Gọi endpoint nội bộ của OrderService ---
+            OrderInfoDTO orderInfo = orderClient.getInternalOrderInfo(orderId);
+
+            // Chỉ gửi event, không cập nhật orderClient.updateOrderStatus
+            PaymentSuccessEvent event = PaymentSuccessEvent.builder()
+                    .orderId(orderId)
+                    .userId(payment.getUserId())
+                    .amount(orderInfo.getTotalAmount())
+                    .items(orderInfo.getItems()) // map lại nếu cần
+                    .build();
+
+            kafkaTemplate.send("payment-success", event);
+        } else {
             payment.setStatus(PaymentStatus.FAILED);
-            orderClient.updateOrderStatus(orderId,"FAILED");
+            // Không gọi update order nữa
         }
 
         paymentRepository.save(payment);
     }
+
 
     public PaymentResponseDTO savePayment(Payment payment) {
         Payment savedPayment = paymentRepository.save(payment);
@@ -151,6 +172,38 @@ public class PaymentService {
         dto.setPaidAt(payment.getPaidAt() != null ? payment.getPaidAt() : null);
 
         return dto;
+    }
+
+
+    // Lấy payment theo orderId
+    public Payment getPaymentByOrderId(Long orderId) {
+        return paymentRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new RuntimeException("Payment not found for orderId=" + orderId));
+    }
+
+    // Cập nhật trạng thái completed
+    public void markPaymentCompleted(Payment payment) {
+        payment.setStatus(PaymentStatus.COMPLETED);
+        payment.setPaidAt(LocalDateTime.now());
+        paymentRepository.save(payment);
+    }
+
+    // Cập nhật trạng thái failed
+    public void markPaymentFailed(Payment payment) {
+        payment.setStatus(PaymentStatus.FAILED);
+        paymentRepository.save(payment);
+    }
+
+    // Gửi Kafka event PaymentSuccessEvent
+    public void sendPaymentSuccessEvent(PaymentSuccessEvent event) {
+        log.info("📤 Sending PaymentSuccessEvent to Kafka for orderId={}", event.getOrderId());
+
+        try {
+            kafkaTemplate.send("payment-success", event);
+            log.info("✅ Event sent (fire-and-forget) for orderId={}", event.getOrderId());
+        } catch (Exception e) {
+            log.error("❌ Failed to send PaymentSuccessEvent for orderId={}", event.getOrderId(), e);
+        }
     }
 
 }

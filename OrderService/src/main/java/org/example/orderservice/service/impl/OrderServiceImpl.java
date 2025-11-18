@@ -7,6 +7,7 @@ import org.example.common.client.UserClient;
 import org.example.common.dto.BookInfoDTO;
 import org.example.common.dto.UserInfoDTO;
 import org.example.common.dto.kafka.OrderCreatedEvent;
+import org.example.common.dto.kafka.OrderItemDTO;
 import org.example.common.enums.PaymentMethod;
 import org.example.common.exception.ResourceNotFoundException;
 import org.example.orderservice.dto.OrderItemResponseDTO;
@@ -16,10 +17,14 @@ import org.example.orderservice.dto.OrderResponseDTO;
 import org.example.orderservice.entity.OrderItem;
 import org.example.orderservice.entity.Orders;
 import org.example.orderservice.enums.OrderStatus;
+import org.example.orderservice.event.PaymentFailedEvent;
+import org.example.orderservice.event.PaymentSuccessEvent;
+import org.example.orderservice.event.StockFailedEvent;
 import org.example.orderservice.repository.OrderItemRepository;
 import org.example.orderservice.repository.OrderRepository;
 import org.example.orderservice.security.SecurityUtils;
 import org.example.orderservice.service.OrderService;
+import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -45,7 +50,6 @@ public class OrderServiceImpl implements OrderService {
     private final KafkaTemplate<String, OrderCreatedEvent> kafkaTemplate;
 
     // Tạo đơn hàng mới
-    @Transactional
     public OrderResponseDTO createOrder(OrderRequestDTO request) {
 
         // 1. Kiểm tra user
@@ -72,10 +76,10 @@ public class OrderServiceImpl implements OrderService {
         for (OrderItemResquestDTO itemReq : request.getListItems()) {
             BookInfoDTO book = bookClient.findBookById(itemReq.getBookId());
             if (book == null) throw new ResourceNotFoundException("Book not found");
-            if (book.getStockQuantity() < itemReq.getQuantity()) throw new RuntimeException("Not enough stock");
+//            if (book.getStockQuantity() < itemReq.getQuantity()) throw new RuntimeException("Not enough stock");
 
             // trừ tồn kho bên catalog-service
-            bookClient.updateStockQuantity(book.getBookId(), -itemReq.getQuantity());
+//            bookClient.updateStockQuantity(book.getBookId(), -itemReq.getQuantity());
 
             OrderItem item = new OrderItem();
             item.setOrderId(savedOrder.getOrderId());
@@ -94,12 +98,17 @@ public class OrderServiceImpl implements OrderService {
         // 5. Gửi event sang Kafka (phải trước return)
         OrderCreatedEvent event = new OrderCreatedEvent();
         event.setOrderId(savedOrder.getOrderId());
-        event.setUserId(savedOrder.getUserId());
         event.setTotalAmount(savedOrder.getTotalAmount());
         event.setReceiver(savedOrder.getReceiver());
         event.setPaymentMethod(PaymentMethod.VNPAY);   // set cứng tạm VNpay
         event.setShippingAddress(savedOrder.getShippingAddress());
         event.setStatus(org.example.common.enums.OrderStatus.PENDING);
+        event.setItems(
+                request.getListItems().stream()
+                        .map(item -> new OrderItemDTO(item.getBookId(), item.getQuantity()))
+                        .toList()
+        );
+
 
 
         kafkaTemplate.send("order-created", event);
@@ -149,7 +158,7 @@ public class OrderServiceImpl implements OrderService {
     public OrderResponseDTO updateOrderStatus(Long orderId, String status) {
         Orders order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-        order.setStatus(order.getStatus());
+        order.setStatus(OrderStatus.valueOf(status));
         Orders updated = orderRepository.save(order);
         return convertToDTO(updated);
     }
@@ -213,7 +222,6 @@ public class OrderServiceImpl implements OrderService {
                 .toList();
     }
 
-    public void sendOrderEvent(OrderCreatedEvent event) {
-        kafkaTemplate.send("order-topic", event);
-    }
+
+
 }

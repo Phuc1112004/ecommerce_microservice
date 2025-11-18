@@ -30,6 +30,7 @@ public class SecurityConfig {
                 // Xử lý khi không có token hoặc token không hợp lệ
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/orders/*/internal-status").permitAll() // <-- thêm dòng này
+                        .requestMatchers("/api/orders/*/internal-info").permitAll()
                         .anyRequest().authenticated()
                 )                .oauth2ResourceServer(oauth2 -> oauth2
                         .jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter()))

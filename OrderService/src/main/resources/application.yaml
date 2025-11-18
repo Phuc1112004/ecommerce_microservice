@@ -29,6 +29,12 @@ spring:
         max.block.ms: 1000       # Tối đa chờ 1 giây khi thiếu metadata
         request.timeout.ms: 2000 # Timeout request tới broker
 
+    consumer:
+      group-id: order-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "org.example.orderservice.event,org.example.common.dto.kafka,*"
 jwt:
   secret-key: nhaptenphuctrinhvaolachayduoctoken
 

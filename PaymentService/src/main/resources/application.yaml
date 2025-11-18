@@ -45,3 +45,6 @@ logging:
   level:
     org.springframework.security: DEBUG
     org.springframework.web.server.adapter.HttpWebHandlerAdapter: TRACE
+
+service:
+  jwt-token: "Bearer <generated_token_here>"

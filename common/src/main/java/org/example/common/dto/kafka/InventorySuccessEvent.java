@@ -1,0 +1,16 @@
+package org.example.common.dto.kafka;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class InventorySuccessEvent {
+    private Long orderId;
+    private String message;
+}
+
